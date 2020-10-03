@@ -2,28 +2,31 @@
 
 .PHONY: all clean
 
-# path
+# set path
 ROOT = .
 TARGET_PATH := $(ROOT)/bin
 INCLUDE_PATH := $(ROOT)/include
 OBJ_PATH := $(ROOT)/obj
 SRC_PATH := $(ROOT)/src
-STATIC_LIB_PATH := $(ROOT)/lib
+LIB_PATH := $(ROOT)/lib
 
-# name
+# set name
 TARGET_NAME := xxx
-STATIC_LIB_NAME := xxx
+LIB_NAME := xxx
 
-# tools
-CC := gcc
-C_STD := cxx
-C_INC := -I $(INCLUDE_PATH)
-C_LIB := -L $(STATIC_LIB_PATH) -l$(STATIC_LIB_NAME)
-C_DEGUG := -g
-C_FLAG := -Wall -std=$(C_STD)
+# set cc
+CC := gxx
+STD := -std=cxx
+INC := -I $(INCLUDE_PATH)
+LIB := -L $(LIB_PATH) -l$(LIB_NAME)
+DEGUG := -g
+FLAGS := -Wall
 
-C_FLAG += ...
+# add options
+FLAGS += $(STD)
+FLAGS += ...
 
+# other tools
 AR := ar
 AR_FLAG := rcsv
 
@@ -33,14 +36,17 @@ RM_FLAG := -rf
 # files
 TARGET := $(TARGET_PATH)/$(TARGET_NAME)
 SRC := $(wildcard $(SRC_PATH)/*.c)
-OBJ := $(patsubst $(SRC_PATH)/%.c, $(OBJ_PATH)/%.c, $(SRC))
+OBJ := $(patsubst $(SRC_PATH)/%.c, $(OBJ_PATH)/%.o, $(SRC))
 
 # rules
 all: $(TARGET)
 	@echo "compile done..."
 
-$(TARGET):
-	@echo "do something..."
+$(TARGET): $(OBJ)
+	$(CC) $(FLAGS) $^ -o $@
+
+$(OBJ_PATH)/%.o: $(SRC_PATH)/%.c
+	$(CC) -c $< -o $@ 
 
 clean: 
 	$(RM) $(RM_FLAG) $(TARGET) $(OBJ)
