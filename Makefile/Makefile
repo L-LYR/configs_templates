@@ -1,30 +1,32 @@
-# Makefile template for C/C++
+# Makefile template
 
 .PHONY: all clean
 
 # set path
 ROOT = .
-TARGET_PATH := $(ROOT)/bin
 INCLUDE_PATH := $(ROOT)/include
-OBJ_PATH := $(ROOT)/obj
-SRC_PATH := $(ROOT)/src
-LIB_PATH := $(ROOT)/lib
 
 # set name
-TARGET_NAME := xxx
-LIB_NAME := xxx
+EXE_NAME :=
+LIB_NAME :=
+
+# make directories
+MKDIR := mkdir
+DIR_OBJ := $(ROOT)/obj
+DIR_EXE := $(ROOT)/bin
+DIR_DEP := $(ROOT)/dep
+DIR_LIB := $(ROOT)/lib
+DIRS := $(DIR_OBJ) $(DIR_LIB) $(DIR_DEP) $(DIR_EXE)
 
 # set cc
-CC := gxx
-STD := -std=cxx
+CC := gcc
+STD := -std=c11
 INC := -I $(INCLUDE_PATH)
-LIB := -L $(LIB_PATH) -l$(LIB_NAME)
 DEGUG := -g
-FLAGS := -Wall
+C_FLAGS := -Wall
 
 # add options
-FLAGS += $(STD)
-FLAGS += ...
+C_FLAGS += $(STD)
 
 # other tools
 AR := ar
@@ -32,22 +34,55 @@ AR_FLAG := rcsv
 
 RM := rm
 RM_FLAG := -rf
+RM_TARGET := $(DIRS)
 
 # files
-TARGET := $(TARGET_PATH)/$(TARGET_NAME)
-SRC := $(wildcard $(SRC_PATH)/*.c)
-OBJ := $(patsubst $(SRC_PATH)/%.c, $(OBJ_PATH)/%.o, $(SRC))
+SRCS := $(wildcard *.c)
+OBJS := $(SRCS:.c=.o)
+OBJS := $(addprefix $(DIR_OBJ)/, $(OBJS))
+DEPS := $(SRCS:.c=.dep)
+DEPS := $(addprefix $(DIR_DEP)/, $(DEPS))
+
+ifneq ($(EXE), "")
+EXE := $(addprefix $(DIR_EXE)/, $(EXE_NAME))
+RM_TARGET += $(EXE)
+endif
+
+ifneq ($(LIB), "")
+LIB := $(addprefix $(DIR_LIB)/, $(LIB_NAME))
+RM_TARGET += $(LIB)
+endif
 
 # rules
-all: $(TARGET)
-	@echo "compile done..."
+ifneq ($(EXE), "")
+all: $(EXE)
+endif
 
-$(TARGET): $(OBJ)
-	$(CC) $(FLAGS) $^ -o $@
+ifneq ($(LIB), "")
+all: $(LIB)
+endif
 
-$(OBJ_PATH)/%.o: $(SRC_PATH)/%.c
-	$(CC) -c $< -o $@ 
+ifneq ($(MAKECMDGOALS), clean)
+-include $(DEPS)
+endif
 
-clean: 
-	$(RM) $(RM_FLAG) $(TARGET) $(OBJ)
+$(DIRS):
+	$(MKDIR) $@
 
+$(EXE): $(DIR_EXE) $(OBJS)
+	$(CC) $(C_FLAGS) -o $@ $(filter %.o, $^)
+
+$(LIB): $(DIR_LIB) $(OBJS)
+	$(AR) $(AR_FLAG) $@ $(filter %.o, $^)
+
+$(DIR_OBJ)/%.o: $(DIR_OBJ) %.c
+	$(CC) $(C_FLAGS) -o $@ -c $(filter %.c, $^)
+
+$(DIR_DEP)/%.dep: $(DIR_DEP) %.c
+	@echo "Making $@..."
+	@set -e ;\
+	$(CC) -E -MM $(filter %.c, $^) > $@.tmp ;\
+	sed 's,\(.*\)\.o[ :]*,obj/\1.o : ,g' < $@.tmp > $@ ;\
+	
+clean:
+	$(RM) $(RM_FLAG) $(RM_TARGET)
